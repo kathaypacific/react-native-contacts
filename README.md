@@ -3,6 +3,13 @@ To contribute read [CONTRIBUTING.md](CONTRIBUTING.md).
 
 Ask questions on [stackoverflow](https://stackoverflow.com/questions/tagged/react-native-contacts) not the issue tracker.
 
+## Notes
+
+* AndroidX causes `@react-native-community/netinfo` to break, so I don't believe
+`react-native-contacts@5.0.0` can be used right now (As v5.0.0 migrates to AndroidX).
+We're currently using v4.0.2 so this shouldn't matter too much as of now.
+More information can be found [here](https://github.com/react-native-community/react-native-netinfo/issues/107)
+
 ## Usage
 `getAll` is a database intensive process, and can take a long time to complete depending on the size of the contacts list. Because of this, it is recommended you access the `getAll` method before it is needed, and cache the results for future use.
 ```es
