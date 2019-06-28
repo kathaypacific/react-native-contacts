@@ -1,5 +1,18 @@
 # react-native-device-info example project
 
+## Notes
+
+* React Native doesn't seem to like symlinks in node_modules.  So when testing new 
+changes in java files in `react-native-contacts` a hacky / dumb way to work around
+this is to hard link the files in `node_modules` to the files in the root
+`react-native-contacts` directory.
+
+  ```bash
+  # yuck
+  cd react-native-contacts/example/node_modules/android/src/main/java/com/rt2zz/reactnativecontacts/
+  ln /path/to/react-native-contacts/android/src/main/java/com/rt2zz/reactnativecontacts/* ./
+  ```
+
 ## Installation
 
 * `git clone https://github.com/rt2zz/react-native-contacts.git`
