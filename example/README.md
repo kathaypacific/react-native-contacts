@@ -9,8 +9,7 @@ this is to hard link the files in `node_modules` to the files in the root
 
   ```bash
   # yuck
-  cd node_modules/react-native-contacts/android/src/main/java/com/rt2zz/reactnativecontacts
-  ln /path/to/react-native-contacts/android/src/main/java/com/rt2zz/reactnativecontacts/* ./
+  ln ../android/src/main/java/com/rt2zz/reactnativecontacts/* node_modules/react-native-contacts/android/src/main/java/com/rt2zz/reactnativecontacts/
   ```
 
 ## Installation
