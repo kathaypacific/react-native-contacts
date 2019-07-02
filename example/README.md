@@ -9,7 +9,7 @@ this is to hard link the files in `node_modules` to the files in the root
 
   ```bash
   # yuck
-  cd react-native-contacts/example/node_modules/android/src/main/java/com/rt2zz/reactnativecontacts/
+  cd node_modules/react-native-contacts/android/src/main/java/com/rt2zz/reactnativecontacts
   ln /path/to/react-native-contacts/android/src/main/java/com/rt2zz/reactnativecontacts/* ./
   ```
 
