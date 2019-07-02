@@ -80,7 +80,7 @@ public class ContactsManager extends ReactContextBaseJavaModule implements Activ
      * @param callback callback
      */
     @ReactMethod
-    public void getAllWithoutPhotos(final Callback callback) {
+    public void getAllWithoutPhotos(final ReadableArray projection, final Callback callback) {
         getAllContacts(callback);
     }
 
@@ -99,6 +99,28 @@ public class ContactsManager extends ReactContextBaseJavaModule implements Activ
 
                 ContactsProvider contactsProvider = new ContactsProvider(cr);
                 WritableArray contacts = contactsProvider.getContacts();
+
+                callback.invoke(null, contacts);
+                return null;
+            }
+        };
+        myAsyncTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+    }
+
+    @ReactMethod
+    public void getMinimal(final Callback callback) {
+        getMinimalContacts(callback);
+    }
+
+    private void getMinimalContacts(final Callback callback) {
+        AsyncTask<Void,Void,Void> myAsyncTask = new AsyncTask<Void,Void,Void>() {
+            @Override
+            protected Void doInBackground(final Void ... params) {
+                Context context = getReactApplicationContext();
+                ContentResolver cr = context.getContentResolver();
+
+                ContactsProvider contactsProvider = new ContactsProvider(cr);
+                WritableArray contacts = contactsProvider.getMinimalContacts();
 
                 callback.invoke(null, contacts);
                 return null;
