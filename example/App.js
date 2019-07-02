@@ -14,7 +14,8 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  View
+  View,
+  Button
 } from "react-native";
 import Contacts from "react-native-contacts";
 
@@ -30,8 +31,19 @@ export default class App extends Component<Props> {
   constructor(props) {
     super(props);
     this.state = {
-      contacts: []
+      contacts: [],
+      start: 0,
+      loaded: 0,
+      rendered: 0,
+      avgAll: 0,
+      avgMin: 0,
+      curr: 0,
+      done: false,
+      benchStatus: "idle"
     };
+
+    this.loadMinimal.bind(this);
+    this.loadAll.bind(this);
   }
 
   async componentWillMount() {
@@ -39,36 +51,87 @@ export default class App extends Component<Props> {
       PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.READ_CONTACTS, {
         title: "Contacts",
         message: "This app would like to view your contacts."
-      }).then(() => {
-        this.loadContacts();
       });
-    } else {
-      this.loadContacts();
     }
   }
 
-  loadContacts() {
-    Contacts.getAll((err, contacts) => {
-      if (err === "denied") {
-        console.warn("Permission to access contacts was denied");
-      } else {
-        this.setState({ contacts });
-      }
-    });
-  }
+  componentDidUpdate = (_props, _state) => {
+    if (!this.state.done) {
+      this.setState({ rendered: new Date(), done: true });
+    }
+  };
 
-  render() {
+  startBench = async () => {
+    this.setState({ benchStatus: "starting" });
+    await this.bench(this.loadAll, 100, "avgAll");
+    await this.bench(this.loadMinimal, 100, "avgMin");
+    this.setState({ benchStatus: "finished" });
+  };
+
+  bench = async (f, iters, key) => {
+    let sum = 0;
+
+    for (let i = 0; i < iters; i++) {
+      const start = new Date();
+
+      await f();
+
+      const end = new Date();
+
+      this.setState({ curr: i });
+
+      sum += end - start;
+    }
+
+    this.setState({ [key]: sum / iters });
+  };
+
+  loadMinimal = () => {
+    return new Promise((resolve, reject) => {
+      const start = new Date();
+      Contacts.getMinimal((err, contacts) => {
+        if (err === "denied") {
+          console.warn("Permission to access contacts was denied");
+          reject();
+        } else {
+          const loaded = new Date();
+          this.setState({ contacts, start, loaded });
+          resolve();
+        }
+      });
+    });
+  };
+
+  loadAll = () => {
+    return new Promise((resolve, reject) => {
+      const start = new Date();
+      Contacts.getAll((err, contacts) => {
+        if (err === "denied") {
+          console.warn("Permission to access contacts was denied");
+          reject();
+        } else {
+          const loaded = new Date();
+          this.setState({ contacts, start, loaded });
+          resolve();
+        }
+      });
+    });
+  };
+
+  render = () => {
     return (
       <SafeAreaView style={styles.container}>
-        <Text style={styles.welcome}>Welcome to React Native Contacts!</Text>
+        <Button onPress={this.startBench} title="start" />
         <ScrollView style={{ flex: 1 }}>
-          <Text style={styles.instructions}>
-            {JSON.stringify(this.state.contacts, null, "\t")}
+          <Text>{`bench status: ${this.state.benchStatus}`}</Text>
+          <Text>{`curr: ${this.state.curr}`}</Text>
+          <Text>
+            {`AllAvg: ${this.state.avgAll}\nMinAvg: ${this.state.avgMin}`}
           </Text>
         </ScrollView>
       </SafeAreaView>
     );
-  }
+  };
 }
 
 const styles = StyleSheet.create({
