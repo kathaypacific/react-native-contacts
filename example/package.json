@@ -12,6 +12,7 @@
   "dependencies": {
     "@segment/analytics-react-native": "^1.1.0-beta.0",
     "react": "16.8.3",
+    "react-devtools": "^3.6.1",
     "react-native": "0.59.5",
     "react-native-contacts": "git://github.com/drklee3/react-native-contacts#55e8946",
     "react-native-device-info": "^2.1.3",
