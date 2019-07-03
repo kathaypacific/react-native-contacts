@@ -2,7 +2,7 @@ export function getAll(
   callback: (error: any, contacts: Contact[]) => void
 ): void;
 export function getMinimal(
-  callback: (error: any, contacts: Contact[]) => void
+  callback: (error: any, contacts: MinimalContact[]) => void
 ): void;
 export function getAllWithoutPhotos(
   callback: (error: any, contacts: Contact[]) => void
@@ -81,19 +81,25 @@ export interface Birthday {
 }
 
 export interface Contact {
-  recordID?: string;
-  company?: string;
-  emailAddresses?: EmailAddress[];
-  familyName?: string;
-  givenName?: string;
-  middleName?: string;
-  jobTitle?: string;
-  phoneNumbers?: PhoneNumber[];
-  hasThumbnail?: boolean;
-  thumbnailPath?: string;
-  postalAddresses?: PostalAddress[];
-  prefix?: string;
-  suffix?: string;
-  department?: string;
-  birthday?: Birthday;
+  recordID: string;
+  company: string;
+  emailAddresses: EmailAddress[];
+  familyName: string;
+  givenName: string;
+  middleName: string;
+  jobTitle: string;
+  phoneNumbers: PhoneNumber[];
+  hasThumbnail: boolean;
+  thumbnailPath: string;
+  postalAddresses: PostalAddress[];
+  prefix: string;
+  suffix: string;
+  department: string;
+  birthday: Birthday;
+}
+
+export interface MinimalContact {
+  recordID: string;
+  displayName: string;
+  phoneNumbers: PhoneNumber[];
 }
