@@ -218,11 +218,11 @@ public class ContactsProvider {
                 while (cursor.moveToNext()) {
                     id = cursor.getString(idIndex);
                     // multiple rows per contact
-                    MinimalContact contact = contacts.get(id);
-
-                    if (contact == null) {
-                        contact = new MinimalContact(id, cursor.getString(nameIndex));
+                    if (!contacts.containsKey(id)) {
+                        contacts.put(id, new MinimalContact(id, cursor.getString(nameIndex)));
                     }
+
+                    MinimalContact contact = contacts.get(id);
 
                     number = cursor.getString(numberIndex);
                     type   = cursor.getInt(typeIndex);

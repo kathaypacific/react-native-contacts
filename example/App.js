@@ -63,8 +63,8 @@ export default class App extends Component<Props> {
 
   startBench = async () => {
     this.setState({ benchStatus: "starting" });
-    await this.bench(this.loadAll, 100, "avgAll");
-    await this.bench(this.loadMinimal, 100, "avgMin");
+    await this.bench(this.loadAll, 24, "avgAll");
+    await this.bench(this.loadMinimal, 24, "avgMin");
     this.setState({ benchStatus: "finished" });
   };
 
