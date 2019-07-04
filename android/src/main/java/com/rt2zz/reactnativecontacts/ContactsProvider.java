@@ -17,6 +17,7 @@ import com.facebook.react.bridge.WritableMap;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -187,41 +188,65 @@ public class ContactsProvider {
     private static final String[] MIN_PROJECTION = new String[] {
         ContactsContract.CommonDataKinds.Phone.CONTACT_ID,
         ContactsContract.Contacts.DISPLAY_NAME,
-        ContactsContract.CommonDataKinds.Phone.NUMBER
-        };
+        Phone.NUMBER,
+        Phone.TYPE
+    };
 
     public WritableArray getMinimalContacts() {
         Cursor cursor = contentResolver.query(
             ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
-            null,
+            MIN_PROJECTION,
             null,
             null,
             null
         );
-        
-        WritableArray contacts = Arguments.createArray();
+
+        Log.v("ReactNative", DatabaseUtils.dumpCursorToString(cursor));
+       
+        Map<String, MinimalContact> contacts = new HashMap<>();
 
         if (cursor != null) {
             try {
-                final int idIndex = cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.CONTACT_ID);
-                final int nameIndex = cursor.getColumnIndex(ContactsContract.Contacts.DISPLAY_NAME);
-                final int numberIndex = cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER);
+                final int idIndex     = cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.CONTACT_ID);
+                final int nameIndex   = cursor.getColumnIndex(ContactsContract.Contacts.DISPLAY_NAME);
+                final int numberIndex = cursor.getColumnIndex(Phone.NUMBER);
+                final int typeIndex   = cursor.getColumnIndex(Phone.TYPE);
                 
-                int id;
-                String name, number;
+                int type;
+                String id, number, label;
 
                 while (cursor.moveToNext()) {
-                    WritableMap contact = Arguments.createMap();
+                    id = cursor.getString(idIndex);
+                    // multiple rows per contact
+                    MinimalContact contact = contacts.get(id);
 
-                    id = cursor.getInt(idIndex);
-                    name = cursor.getString(nameIndex);
+                    if (contact == null) {
+                        contact = new MinimalContact(id, cursor.getString(nameIndex));
+                    }
+
                     number = cursor.getString(numberIndex);
+                    type   = cursor.getInt(typeIndex);
 
-                    contact.putInt("id", id);
-                    contact.putString("displayName", name);
-                    contact.putString("number", number);
+                    if (!TextUtils.isEmpty(number) && type != -1) {
+                        switch (type) {
+                            case Phone.TYPE_HOME:
+                                label = "home";
+                                break;
+                            case Phone.TYPE_WORK:
+                                label = "work";
+                                break;
+                            case Phone.TYPE_MOBILE:
+                                label = "mobile";
+                                break;
+                            default:
+                                label = "other";
+                        }
 
-                    contacts.pushMap(contact);
+                        contact.phoneNumbers.add(new Contact.Item(label, number, id));
+                    }
+                    
+                    Log.v("ReactNative", "ID: " + id + "\tnumber: " + number);
+                
                 }
             } catch (Exception e) {
                 Log.v("ReactNative", e.toString());
@@ -230,7 +255,12 @@ public class ContactsProvider {
             }
         }
 
-        return contacts;
+        WritableArray contactsArr = Arguments.createArray();
+        for (MinimalContact contact : contacts.values()) {
+            contactsArr.pushMap(contact.toMap());
+        }
+
+        return contactsArr;
     }
 
     // don't think worth it to pass a custom projection
@@ -326,9 +356,25 @@ public class ContactsProvider {
         {
             Cursor cursor = contentResolver.query(
                     ContactsContract.Data.CONTENT_URI,
-                    MIN_PROJECTION,
-                    null,
-                    null,
+                    FULL_PROJECTION.toArray(new String[FULL_PROJECTION.size()]),
+                    ContactsContract.Data.MIMETYPE + "=? OR "
+                    + ContactsContract.Data.MIMETYPE + "=? OR "
+                    + ContactsContract.Data.MIMETYPE + "=? OR "
+                    + ContactsContract.Data.MIMETYPE + "=? OR "
+                    + ContactsContract.Data.MIMETYPE + "=? OR "
+                    + ContactsContract.Data.MIMETYPE + "=? OR "
+                    + ContactsContract.Data.MIMETYPE + "=? OR "
+                    + ContactsContract.Data.MIMETYPE + "=?",
+                    new String[]{
+                        Email.CONTENT_ITEM_TYPE,
+                        Phone.CONTENT_ITEM_TYPE,
+                        StructuredName.CONTENT_ITEM_TYPE,
+                        Organization.CONTENT_ITEM_TYPE,
+                        StructuredPostal.CONTENT_ITEM_TYPE,
+                        Note.CONTENT_ITEM_TYPE,
+                        Website.CONTENT_ITEM_TYPE,
+                        Event.CONTENT_ITEM_TYPE,
+                    },
                     null
             );
 
@@ -386,10 +432,9 @@ public class ContactsProvider {
 
         while (cursor != null && cursor.moveToNext()) {
 
-            int columnIndexContactId = cursor.getColumnIndex(ContactsContract.Data.CONTACT_ID);
-            int columnIndexId = cursor.getColumnIndex(ContactsContract.Data._ID);
+            int columnIndexContactId    = cursor.getColumnIndex(ContactsContract.Data.CONTACT_ID);
+            int columnIndexId           = cursor.getColumnIndex(ContactsContract.Data._ID);
             int columnIndexRawContactId = cursor.getColumnIndex(ContactsContract.Data.RAW_CONTACT_ID);
-
 
             String contactId;
             String id;
@@ -418,6 +463,7 @@ public class ContactsProvider {
             if (!map.containsKey(contactId)) {
                 map.put(contactId, new Contact(contactId));
             }
+           
             
             // multiple rows for single contact based on DATA columns
             Contact contact = map.get(contactId);
@@ -425,6 +471,7 @@ public class ContactsProvider {
 
             String mimeType = getColumnString(cursor, ContactsContract.Data.MIMETYPE, "");
 
+            /*
             int columnIndexDisplayName = cursor.getColumnIndex(ContactsContract.Contacts.DISPLAY_NAME);
             if (columnIndexDisplayName != -1) {
                 String name = cursor.getString(columnIndexDisplayName);
@@ -433,7 +480,7 @@ public class ContactsProvider {
                     contact.displayName = name;
                 }
             }
-
+            
             int columnIndexRawPhotoURI = cursor.getColumnIndex(Contactables.PHOTO_URI);
             if (columnIndexRawPhotoURI != -1 && TextUtils.isEmpty(contact.photoUri)) {
                 String rawPhotoURI = cursor.getString(columnIndexRawPhotoURI);
@@ -442,6 +489,7 @@ public class ContactsProvider {
                     contact.hasPhoto = true;
                 }
             }
+            */
 
             switch(mimeType) {
                 case StructuredName.CONTENT_ITEM_TYPE:
@@ -563,6 +611,35 @@ public class ContactsProvider {
             }
         }
         return null;
+    }
+
+    private static class MinimalContact {
+        private String id;
+        private String displayName;
+        private List<Contact.Item> phoneNumbers = new ArrayList<>();
+
+        public MinimalContact(String id, String displayName) {
+            this.id = id;
+            this.displayName = displayName;
+        }
+
+        public WritableMap toMap() {
+            WritableMap contact = Arguments.createMap();
+            contact.putString("id", id);
+            contact.putString("displayName", displayName);
+
+            WritableArray numbers = Arguments.createArray();
+            for (Contact.Item item : phoneNumbers) {
+                WritableMap map = Arguments.createMap();
+                map.putString("number", item.value);
+                map.putString("label", item.label);
+                map.putString("id", item.id);
+                numbers.pushMap(map);
+            }
+            contact.putArray("phoneNumbers", numbers);
+
+            return contact;
+        }
     }
 
     private static class Contact {
