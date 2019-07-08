@@ -128,6 +128,7 @@ export default class App extends Component<Props> {
           <Text>
             {`AllAvg: ${this.state.avgAll}\nMinAvg: ${this.state.avgMin}`}
           </Text>
+          <Text>{JSON.stringify(this.state.contacts, null, "  ")}</Text>
         </ScrollView>
       </SafeAreaView>
     );

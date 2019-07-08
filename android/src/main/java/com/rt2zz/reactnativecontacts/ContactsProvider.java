@@ -188,6 +188,7 @@ public class ContactsProvider {
     private static final String[] MIN_PROJECTION = new String[] {
         ContactsContract.CommonDataKinds.Phone.CONTACT_ID,
         ContactsContract.Contacts.DISPLAY_NAME,
+        Contactables.PHOTO_URI,
         Phone.NUMBER,
         Phone.TYPE
     };
@@ -209,11 +210,12 @@ public class ContactsProvider {
             try {
                 final int idIndex     = cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.CONTACT_ID);
                 final int nameIndex   = cursor.getColumnIndex(ContactsContract.Contacts.DISPLAY_NAME);
+                final int photoIndex  = cursor.getColumnIndex(Contactables.PHOTO_URI);
                 final int numberIndex = cursor.getColumnIndex(Phone.NUMBER);
                 final int typeIndex   = cursor.getColumnIndex(Phone.TYPE);
                 
                 int type;
-                String id, number, label;
+                String id, number, label, photoUri;
 
                 while (cursor.moveToNext()) {
                     id = cursor.getString(idIndex);
@@ -224,8 +226,16 @@ public class ContactsProvider {
 
                     MinimalContact contact = contacts.get(id);
 
-                    number = cursor.getString(numberIndex);
-                    type   = cursor.getInt(typeIndex);
+                    if (TextUtils.isEmpty(contact.thumbnailPath)) {
+                      photoUri = cursor.getString(photoIndex);
+                      if (!TextUtils.isEmpty(photoUri)) {
+                        contact.thumbnailPath = photoUri;
+                      }
+                    }
+
+                    // phone number data
+                    number   = cursor.getString(numberIndex);
+                    type     = cursor.getInt(typeIndex);
 
                     if (!TextUtils.isEmpty(number) && type != -1) {
                         switch (type) {
@@ -471,7 +481,6 @@ public class ContactsProvider {
 
             String mimeType = getColumnString(cursor, ContactsContract.Data.MIMETYPE, "");
 
-            /*
             int columnIndexDisplayName = cursor.getColumnIndex(ContactsContract.Contacts.DISPLAY_NAME);
             if (columnIndexDisplayName != -1) {
                 String name = cursor.getString(columnIndexDisplayName);
@@ -489,7 +498,6 @@ public class ContactsProvider {
                     contact.hasPhoto = true;
                 }
             }
-            */
 
             switch(mimeType) {
                 case StructuredName.CONTENT_ITEM_TYPE:
@@ -616,6 +624,7 @@ public class ContactsProvider {
     private static class MinimalContact {
         private String id;
         private String displayName;
+        private String thumbnailPath = "";
         private List<Contact.Item> phoneNumbers = new ArrayList<>();
 
         public MinimalContact(String id, String displayName) {
@@ -627,6 +636,7 @@ public class ContactsProvider {
             WritableMap contact = Arguments.createMap();
             contact.putString("id", id);
             contact.putString("displayName", displayName);
+            contact.putString("thumbnailPath", thumbnailPath);
 
             WritableArray numbers = Arguments.createArray();
             for (Contact.Item item : phoneNumbers) {

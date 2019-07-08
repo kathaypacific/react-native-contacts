@@ -102,4 +102,5 @@ export interface MinimalContact {
   recordID: string;
   displayName: string;
   phoneNumbers: PhoneNumber[];
+  thumbnailPath: string;
 }
