@@ -14,6 +14,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
   Button
 } from "react-native";
@@ -32,13 +33,8 @@ export default class App extends Component<Props> {
     super(props);
     this.state = {
       contacts: [],
-      start: 0,
-      loaded: 0,
-      rendered: 0,
-      avgAll: 0,
-      avgMin: 0,
       curr: 0,
-      done: false,
+      iterations: 20,
       benchStatus: "idle"
     };
 
@@ -55,21 +51,50 @@ export default class App extends Component<Props> {
     }
   }
 
-  componentDidUpdate = (_props, _state) => {
-    if (!this.state.done) {
-      this.setState({ rendered: new Date(), done: true });
-    }
+  handleInput = input => {
+    this.setState({ iterations: parseInt(input) });
   };
 
   startBench = async () => {
-    this.setState({ benchStatus: "starting" });
-    await this.bench(this.loadAll, 24, "avgAll");
-    await this.bench(this.loadMinimal, 24, "avgMin");
+    if (this.state.benchStatus === "running") {
+      return;
+    }
+    this.setState({ benchStatus: "running" });
+    await this.bench(this.loadAll, this.state.iterations, "all");
+    await this.bench(this.loadMinimal, this.state.iterations, "minimal");
     this.setState({ benchStatus: "finished" });
   };
 
+  arrData = arr => {
+    const avg = arr.reduce((a, b) => a + b) / arr.length;
+    // standard deviation
+    const sd = Math.sqrt(
+      arr.map(x => Math.pow(x - avg, 2)).reduce((a, b) => a + b) / arr.length
+    );
+
+    return {
+      avg: avg.toFixed(2),
+      sd: sd.toFixed(2),
+      max: Math.max(...arr).toFixed(2),
+      min: Math.min(...arr).toFixed(2)
+    };
+  };
+
+  formatArrData = (label, data) => {
+    if (!data) {
+      return null;
+    }
+
+    return (
+      <Text>
+        {`${label} (mean ± σ): ${data.avg} ms ± ${data.sd} ms\
+        \n${label} Range (min … max): ${data.min} ms … ${data.max} ms`}
+      </Text>
+    );
+  };
+
   bench = async (f, iters, key) => {
-    let sum = 0;
+    let results = [];
 
     for (let i = 0; i < iters; i++) {
       const start = new Date();
@@ -78,20 +103,21 @@ export default class App extends Component<Props> {
 
       const end = new Date();
 
-      this.setState({ curr: i });
+      this.setState({ curr: i + 1 });
 
-      sum += end - start;
+      results.push(end - start);
     }
 
-    this.setState({ [key]: sum / iters });
+    this.setState({ [key]: this.arrData(results) });
   };
 
   loadMinimal = () => {
     return new Promise((resolve, reject) => {
       const start = new Date();
       Contacts.getMinimal((err, contacts) => {
-        if (err === "denied") {
+        if (err) {
           console.warn("Permission to access contacts was denied");
+          this.setState({ err });
           reject();
         } else {
           const loaded = new Date();
@@ -106,8 +132,9 @@ export default class App extends Component<Props> {
     return new Promise((resolve, reject) => {
       const start = new Date();
       Contacts.getAll((err, contacts) => {
-        if (err === "denied") {
+        if (err) {
           console.warn("Permission to access contacts was denied");
+          this.setState({ err });
           reject();
         } else {
           const loaded = new Date();
@@ -122,13 +149,28 @@ export default class App extends Component<Props> {
     return (
       <SafeAreaView style={styles.container}>
         <Button onPress={this.startBench} title="start" />
+        <TextInput
+          keyboardType="numeric"
+          onChangeText={this.handleInput}
+          defaultValue="20"
+          placeholder="iterations"
+          style={{ borderColor: "gray", borderWidth: 1 }}
+        />
         <ScrollView style={{ flex: 1 }}>
           <Text>{`bench status: ${this.state.benchStatus}`}</Text>
-          <Text>{`curr: ${this.state.curr}`}</Text>
-          <Text>
-            {`AllAvg: ${this.state.avgAll}\nMinAvg: ${this.state.avgMin}`}
-          </Text>
-          <Text>{JSON.stringify(this.state.contacts, null, "  ")}</Text>
+          <Text>{`iteration: ${this.state.curr} / ${
+            this.state.iterations
+          }`}</Text>
+
+          {!!this.state.err && <Text>{`error: ${this.state.err}`}</Text>}
+          {this.formatArrData("All", this.state.all)}
+          <View
+            style={{
+              borderBottomColor: "black",
+              borderBottomWidth: 1
+            }}
+          />
+          {this.formatArrData("Minimal", this.state.minimal)}
         </ScrollView>
       </SafeAreaView>
     );
