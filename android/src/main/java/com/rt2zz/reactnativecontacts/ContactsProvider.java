@@ -319,26 +319,6 @@ public class ContactsProvider {
 
         return contacts;
     }
-    
-    private static String getColumnString(Cursor cursor, String columnName, String defaultValue) {
-        int index = cursor.getColumnIndex(columnName);
-
-        if (index == -1) {
-            return defaultValue;
-        }
-
-        return cursor.getString(index);
-    }
-
-    private static int getColumnInt(Cursor cursor, String columnName, int defaultValue) {
-        int index = cursor.getColumnIndex(columnName);
-
-        if (index == -1) {
-            return defaultValue;
-        }
-
-        return cursor.getInt(index);
-    }
 
     @NonNull
     private Map<String, Contact> loadContactsFrom(Cursor cursor) {
@@ -347,10 +327,9 @@ public class ContactsProvider {
 
         while (cursor != null && cursor.moveToNext()) {
 
-            int columnIndexContactId    = cursor.getColumnIndex(ContactsContract.Data.CONTACT_ID);
-            int columnIndexId           = cursor.getColumnIndex(ContactsContract.Data._ID);
+            int columnIndexContactId = cursor.getColumnIndex(ContactsContract.Data.CONTACT_ID);
+            int columnIndexId = cursor.getColumnIndex(ContactsContract.Data._ID);
             int columnIndexRawContactId = cursor.getColumnIndex(ContactsContract.Data.RAW_CONTACT_ID);
-
             String contactId;
             String id;
             String rawContactId;
@@ -378,26 +357,17 @@ public class ContactsProvider {
             if (!map.containsKey(contactId)) {
                 map.put(contactId, new Contact(contactId));
             }
-           
-            
-            // multiple rows for single contact based on DATA columns
+
             Contact contact = map.get(contactId);
+            String mimeType = cursor.getString(cursor.getColumnIndex(ContactsContract.Data.MIMETYPE));
+            String name = cursor.getString(cursor.getColumnIndex(ContactsContract.Contacts.DISPLAY_NAME));
             contact.rawContactId = rawContactId;
-
-            String mimeType = getColumnString(cursor, ContactsContract.Data.MIMETYPE, "");
-
-            int columnIndexDisplayName = cursor.getColumnIndex(ContactsContract.Contacts.DISPLAY_NAME);
-            if (columnIndexDisplayName != -1) {
-                String name = cursor.getString(columnIndexDisplayName);
-
-                if (!TextUtils.isEmpty(name) && TextUtils.isEmpty(contact.displayName)) {
-                    contact.displayName = name;
-                }
+            if (!TextUtils.isEmpty(name) && TextUtils.isEmpty(contact.displayName)) {
+                contact.displayName = name;
             }
-            
-            int columnIndexRawPhotoURI = cursor.getColumnIndex(Contactables.PHOTO_URI);
-            if (columnIndexRawPhotoURI != -1 && TextUtils.isEmpty(contact.photoUri)) {
-                String rawPhotoURI = cursor.getString(columnIndexRawPhotoURI);
+
+            if (TextUtils.isEmpty(contact.photoUri)) {
+                String rawPhotoURI = cursor.getString(cursor.getColumnIndex(Contactables.PHOTO_URI));
                 if (!TextUtils.isEmpty(rawPhotoURI)) {
                     contact.photoUri = rawPhotoURI;
                     contact.hasPhoto = true;
@@ -406,17 +376,17 @@ public class ContactsProvider {
 
             switch(mimeType) {
                 case StructuredName.CONTENT_ITEM_TYPE:
-                    contact.givenName  = getColumnString(cursor, StructuredName.GIVEN_NAME, "");
-                    contact.middleName = getColumnString(cursor, StructuredName.MIDDLE_NAME, "");
-                    contact.familyName = getColumnString(cursor, StructuredName.FAMILY_NAME, "");
-                    contact.prefix     = getColumnString(cursor, StructuredName.PREFIX, "");
-                    contact.suffix     = getColumnString(cursor, StructuredName.SUFFIX, "");
+                    contact.givenName = cursor.getString(cursor.getColumnIndex(StructuredName.GIVEN_NAME));
+                    contact.middleName = cursor.getString(cursor.getColumnIndex(StructuredName.MIDDLE_NAME));
+                    contact.familyName = cursor.getString(cursor.getColumnIndex(StructuredName.FAMILY_NAME));
+                    contact.prefix = cursor.getString(cursor.getColumnIndex(StructuredName.PREFIX));
+                    contact.suffix = cursor.getString(cursor.getColumnIndex(StructuredName.SUFFIX));
                     break;
                 case Phone.CONTENT_ITEM_TYPE:
-                    String phoneNumber = getColumnString(cursor, Phone.NUMBER, "");
-                    int phoneType = getColumnInt(cursor, Phone.TYPE, -1);
+                    String phoneNumber = cursor.getString(cursor.getColumnIndex(Phone.NUMBER));
+                    int phoneType = cursor.getInt(cursor.getColumnIndex(Phone.TYPE));
 
-                    if (!TextUtils.isEmpty(phoneNumber) && phoneType != -1) {
+                    if (!TextUtils.isEmpty(phoneNumber)) {
                         String label;
                         switch (phoneType) {
                             case Phone.TYPE_HOME:
@@ -435,9 +405,9 @@ public class ContactsProvider {
                     }
                     break;
                 case Email.CONTENT_ITEM_TYPE:
-                    String email = getColumnString(cursor, Email.ADDRESS, "");
-                    int emailType = getColumnInt(cursor, Email.TYPE, -1);
-                    if (!TextUtils.isEmpty(email) && emailType != -1) {
+                    String email = cursor.getString(cursor.getColumnIndex(Email.ADDRESS));
+                    int emailType = cursor.getInt(cursor.getColumnIndex(Email.TYPE));
+                    if (!TextUtils.isEmpty(email)) {
                         String label;
                         switch (emailType) {
                             case Email.TYPE_HOME:
@@ -450,7 +420,11 @@ public class ContactsProvider {
                                 label = "mobile";
                                 break;
                             case Email.TYPE_CUSTOM:
-                                label = getColumnString(cursor, Email.LABEL, "").toLowerCase();
+                                if (cursor.getString(cursor.getColumnIndex(Email.LABEL)) != null) {
+                                    label = cursor.getString(cursor.getColumnIndex(Email.LABEL)).toLowerCase();
+                                } else {
+                                    label = "";
+                                }
                                 break;
                             default:
                                 label = "other";
@@ -459,18 +433,18 @@ public class ContactsProvider {
                     }
                     break;
                 case Organization.CONTENT_ITEM_TYPE:
-                    contact.company = getColumnString(cursor, Organization.COMPANY, "");
-                    contact.jobTitle = getColumnString(cursor, Organization.TITLE, "");
-                    contact.department = getColumnString(cursor, Organization.DEPARTMENT, "");
+                    contact.company = cursor.getString(cursor.getColumnIndex(Organization.COMPANY));
+                    contact.jobTitle = cursor.getString(cursor.getColumnIndex(Organization.TITLE));
+                    contact.department = cursor.getString(cursor.getColumnIndex(Organization.DEPARTMENT));
                     break;
                 case StructuredPostal.CONTENT_ITEM_TYPE:
                     contact.postalAddresses.add(new Contact.PostalAddressItem(cursor));
                     break;
                 case Event.CONTENT_ITEM_TYPE:
-                    int eventType = getColumnInt(cursor, Event.TYPE, -1);
+                    int eventType = cursor.getInt(cursor.getColumnIndex(Event.TYPE));
                     if (eventType == Event.TYPE_BIRTHDAY) {
                         try {
-                            String birthday = getColumnString(cursor, Event.START_DATE, "").replace("--", "");
+                            String birthday = cursor.getString(cursor.getColumnIndex(Event.START_DATE)).replace("--", "");
                             String[] yearMonthDay = birthday.split("-");
                             List<String> yearMonthDayList = Arrays.asList(yearMonthDay);
 
@@ -556,7 +530,6 @@ public class ContactsProvider {
             return contact;
         }
     }
-
     private static class Contact {
         private String contactId;
         private String rawContactId;
@@ -588,6 +561,7 @@ public class ContactsProvider {
             contact.putString("recordID", contactId);
             contact.putString("rawContactId", rawContactId);
             contact.putString("givenName", TextUtils.isEmpty(givenName) ? displayName : givenName);
+            contact.putString("displayName", displayName);
             contact.putString("middleName", middleName);
             contact.putString("familyName", familyName);
             contact.putString("prefix", prefix);
@@ -706,7 +680,7 @@ public class ContactsProvider {
             }
 
             static String getLabel(Cursor cursor) {
-                switch (getColumnInt(cursor, StructuredPostal.TYPE, 0)) {
+                switch (cursor.getInt(cursor.getColumnIndex(StructuredPostal.TYPE))) {
                     case StructuredPostal.TYPE_HOME:
                         return "home";
                     case StructuredPostal.TYPE_WORK:
