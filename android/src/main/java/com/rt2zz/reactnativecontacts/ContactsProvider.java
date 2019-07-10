@@ -34,18 +34,13 @@ import static android.provider.ContactsContract.CommonDataKinds.StructuredPostal
 public class ContactsProvider {
     public static final int ID_FOR_PROFILE_CONTACT = -1;
 
-    private static final List<String> MINIMAL_PROJECTION = new ArrayList<String>() {{
-        add(ContactsContract.Contacts.Data.MIMETYPE);
-        add(ContactsContract.Data.CONTACT_ID);
-        add(ContactsContract.Data.RAW_CONTACT_ID);
-        add(Contactables.PHOTO_URI);
-        add(StructuredName.GIVEN_NAME);
-        add(StructuredName.FAMILY_NAME);
-        add(Phone.NUMBER);
-        add(Phone.NORMALIZED_NUMBER);
-        add(Phone.TYPE);
-        add(Phone.LABEL);
-    }};
+    private static final String[] MIN_PROJECTION = new String[] {
+        ContactsContract.CommonDataKinds.Phone.CONTACT_ID,
+        ContactsContract.Contacts.DISPLAY_NAME,
+        Contactables.PHOTO_URI,
+        Phone.NUMBER,
+        Phone.TYPE
+    };
 
     private static final List<String> JUST_ME_PROJECTION = new ArrayList<String>() {{
         add((ContactsContract.Data._ID));
@@ -185,13 +180,6 @@ public class ContactsProvider {
 
        return null;
     }
-    private static final String[] MIN_PROJECTION = new String[] {
-        ContactsContract.CommonDataKinds.Phone.CONTACT_ID,
-        ContactsContract.Contacts.DISPLAY_NAME,
-        Contactables.PHOTO_URI,
-        Phone.NUMBER,
-        Phone.TYPE
-    };
 
     public WritableArray getMinimalContacts() {
         Cursor cursor = contentResolver.query(
@@ -201,8 +189,6 @@ public class ContactsProvider {
             null,
             null
         );
-
-        Log.v("ReactNative", DatabaseUtils.dumpCursorToString(cursor));
        
         Map<String, MinimalContact> contacts = new HashMap<>();
 
@@ -233,7 +219,6 @@ public class ContactsProvider {
                       }
                     }
 
-                    // phone number data
                     number   = cursor.getString(numberIndex);
                     type     = cursor.getInt(typeIndex);
 
@@ -254,12 +239,7 @@ public class ContactsProvider {
 
                         contact.phoneNumbers.add(new Contact.Item(label, number, id));
                     }
-                    
-                    Log.v("ReactNative", "ID: " + id + "\tnumber: " + number);
-                
                 }
-            } catch (Exception e) {
-                Log.v("ReactNative", e.toString());
             } finally {
                 cursor.close();
             }
@@ -273,77 +253,8 @@ public class ContactsProvider {
         return contactsArr;
     }
 
-    // don't think worth it to pass a custom projection
-    public WritableArray getContacts(ReadableArray projection) {
-        Map<String, Contact> justMe = null;
-        {
-            Cursor cursor = contentResolver.query(
-                    Uri.withAppendedPath(ContactsContract.Profile.CONTENT_URI, ContactsContract.Contacts.Data.CONTENT_DIRECTORY),
-                    JUST_ME_PROJECTION.toArray(new String[JUST_ME_PROJECTION.size()]),
-                    null,
-                    null,
-                    null
-            );
-
-            try {
-                justMe = loadContactsFrom(cursor);
-            } catch (Exception e) {
-                Log.v("ReactNative", e.toString());
-            } finally {
-                if (cursor != null) {
-                    cursor.close();
-                }
-            }
-        }
-
-        String[] projectionArr;
-        
-        if (projection.size() == 0) {
-          projectionArr = FULL_PROJECTION.toArray(new String[FULL_PROJECTION.size()]);
-        } else {
-          projectionArr = projection.toArrayList().toArray(new String[projection.size()]);
-        }
-
-        Map<String, Contact> everyoneElse = null;
-        {
-            Cursor cursor = contentResolver.query(
-                    ContactsContract.Data.CONTENT_URI,
-                    FULL_PROJECTION.toArray(new String[FULL_PROJECTION.size()]),
-                    null,
-                    null,
-                    null
-            );
-
-            try {
-                everyoneElse = loadContactsFrom(cursor);
-            } catch (Exception e) {
-                Log.v("ReactNative", e.toString());
-            } finally {
-                if (cursor != null) {
-                    cursor.close();
-                }
-            }
-        }
-
-        WritableArray contacts = Arguments.createArray();
-
-        if (justMe != null) {
-            for (Contact contact : justMe.values()) {
-                contacts.pushMap(contact.toMap());
-            }
-        }
-         
-        if (everyoneElse != null) {
-            for (Contact contact : everyoneElse.values()) {
-                contacts.pushMap(contact.toMap());
-            }
-        }
-
-        return contacts;
-    }
-
     public WritableArray getContacts() {
-        Map<String, Contact> justMe = null;
+        Map<String, Contact> justMe;
         {
             Cursor cursor = contentResolver.query(
                     Uri.withAppendedPath(ContactsContract.Profile.CONTENT_URI, ContactsContract.Contacts.Data.CONTENT_DIRECTORY),
@@ -362,7 +273,7 @@ public class ContactsProvider {
             }
         }
 
-        Map<String, Contact> everyoneElse = null;
+        Map<String, Contact> everyoneElse;
         {
             Cursor cursor = contentResolver.query(
                     ContactsContract.Data.CONTENT_URI,
@@ -390,8 +301,6 @@ public class ContactsProvider {
 
             try {
                 everyoneElse = loadContactsFrom(cursor);
-            } catch (Exception e) {
-                Log.v("ReactNative", e.toString());
             } finally {
                 if (cursor != null) {
                     cursor.close();
@@ -400,16 +309,12 @@ public class ContactsProvider {
         }
 
         WritableArray contacts = Arguments.createArray();
-        if (justMe != null) {
-            for (Contact contact : justMe.values()) {
-                contacts.pushMap(contact.toMap());
-            }
+        for (Contact contact : justMe.values()) {
+            contacts.pushMap(contact.toMap());
         }
          
-        if (everyoneElse != null) {
-            for (Contact contact : everyoneElse.values()) {
-                contacts.pushMap(contact.toMap());
-            }
+        for (Contact contact : everyoneElse.values()) {
+            contacts.pushMap(contact.toMap());
         }
 
         return contacts;
