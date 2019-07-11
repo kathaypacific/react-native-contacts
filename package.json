@@ -39,8 +39,7 @@
     }
   ],
   "license": "MIT",
-  "dependencies": {
-    "react-native": "^0.59.5",
+  "devDependencies": {
     "react-native-cli": "^2.0.1"
   }
 }
