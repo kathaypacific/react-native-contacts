@@ -161,6 +161,7 @@ export default class App extends Component<Props> {
           <Text>{`iteration: ${this.state.curr} / ${
             this.state.iterations
           }`}</Text>
+          <Text>{`# of contacts: ${this.state.contacts.length}`}</Text>
 
           {!!this.state.err && <Text>{`error: ${this.state.err}`}</Text>}
           {this.formatArrData("All", this.state.all)}
