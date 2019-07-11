@@ -179,6 +179,51 @@ public class ContactsProvider {
        return null;
     }
 
+    private void parseMinimalContact(Map<String, MinimalContact> contacts, Cursor cursor) {
+        final int idIndex     = cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.CONTACT_ID);
+        final int nameIndex   = cursor.getColumnIndex(ContactsContract.Contacts.DISPLAY_NAME);
+        final int photoIndex  = cursor.getColumnIndex(Contactables.PHOTO_URI);
+        final int numberIndex = cursor.getColumnIndex(Phone.NUMBER);
+        final int typeIndex   = cursor.getColumnIndex(Phone.TYPE);
+        
+        String id = cursor.getString(idIndex);
+        // multiple rows per contact
+        if (!contacts.containsKey(id)) {
+            contacts.put(id, new MinimalContact(id, cursor.getString(nameIndex)));
+        }
+
+        MinimalContact contact = contacts.get(id);
+
+        if (TextUtils.isEmpty(contact.thumbnailPath)) {
+            String photoUri = cursor.getString(photoIndex);
+            if (!TextUtils.isEmpty(photoUri)) {
+            contact.thumbnailPath = photoUri;
+            }
+        }
+
+        String number = cursor.getString(numberIndex);
+        int type      = cursor.getInt(typeIndex);
+        String label;
+
+        if (!TextUtils.isEmpty(number) && type != -1) {
+            switch (type) {
+                case Phone.TYPE_HOME:
+                    label = "home";
+                    break;
+                case Phone.TYPE_WORK:
+                    label = "work";
+                    break;
+                case Phone.TYPE_MOBILE:
+                    label = "mobile";
+                    break;
+                default:
+                    label = "other";
+            }
+
+            contact.phoneNumbers.add(new Contact.Item(label, number, id));
+        }
+    }
+
     public WritableArray getMinimalContacts() {
         Cursor cursor = contentResolver.query(
             ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
@@ -192,51 +237,10 @@ public class ContactsProvider {
 
         if (cursor != null) {
             try {
-                final int idIndex     = cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.CONTACT_ID);
-                final int nameIndex   = cursor.getColumnIndex(ContactsContract.Contacts.DISPLAY_NAME);
-                final int photoIndex  = cursor.getColumnIndex(Contactables.PHOTO_URI);
-                final int numberIndex = cursor.getColumnIndex(Phone.NUMBER);
-                final int typeIndex   = cursor.getColumnIndex(Phone.TYPE);
                 
-                int type;
-                String id, number, label, photoUri;
 
                 while (cursor.moveToNext()) {
-                    id = cursor.getString(idIndex);
-                    // multiple rows per contact
-                    if (!contacts.containsKey(id)) {
-                        contacts.put(id, new MinimalContact(id, cursor.getString(nameIndex)));
-                    }
-
-                    MinimalContact contact = contacts.get(id);
-
-                    if (TextUtils.isEmpty(contact.thumbnailPath)) {
-                      photoUri = cursor.getString(photoIndex);
-                      if (!TextUtils.isEmpty(photoUri)) {
-                        contact.thumbnailPath = photoUri;
-                      }
-                    }
-
-                    number   = cursor.getString(numberIndex);
-                    type     = cursor.getInt(typeIndex);
-
-                    if (!TextUtils.isEmpty(number) && type != -1) {
-                        switch (type) {
-                            case Phone.TYPE_HOME:
-                                label = "home";
-                                break;
-                            case Phone.TYPE_WORK:
-                                label = "work";
-                                break;
-                            case Phone.TYPE_MOBILE:
-                                label = "mobile";
-                                break;
-                            default:
-                                label = "other";
-                        }
-
-                        contact.phoneNumbers.add(new Contact.Item(label, number, id));
-                    }
+                    parseMinimalContact(contacts, cursor);
                 }
             } finally {
                 cursor.close();
