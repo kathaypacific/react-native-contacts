@@ -5400,9 +5400,9 @@ react-native-cli@^2.0.1:
     prompt "^0.2.14"
     semver "^5.0.3"
 
-"react-native-contacts@git://github.com/drklee3/react-native-contacts#55e8946":
+"react-native-contacts@git://github.com/celo-org/react-native-contacts#drklee3/getminimal":
   version "4.0.2"
-  resolved "git://github.com/drklee3/react-native-contacts#55e894654bd9933d9e4889f7c136849b3a3c2b74"
+  resolved "git://github.com/celo-org/react-native-contacts#ae046b96240bcdc6cb9f1e78c1b9e6dec65eef5d"
   dependencies:
     react-native "^0.59.5"
     react-native-cli "^2.0.1"
