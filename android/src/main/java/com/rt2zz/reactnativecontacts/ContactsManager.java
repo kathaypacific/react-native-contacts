@@ -80,7 +80,7 @@ public class ContactsManager extends ReactContextBaseJavaModule implements Activ
      * @param callback callback
      */
     @ReactMethod
-    public void getAllWithoutPhotos(final ReadableArray projection, final Callback callback) {
+    public void getAllWithoutPhotos(final Callback callback) {
         getAllContacts(callback);
     }
 
