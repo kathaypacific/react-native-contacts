@@ -237,8 +237,6 @@ public class ContactsProvider {
 
         if (cursor != null) {
             try {
-                
-
                 while (cursor.moveToNext()) {
                     parseMinimalContact(contacts, cursor);
                 }
